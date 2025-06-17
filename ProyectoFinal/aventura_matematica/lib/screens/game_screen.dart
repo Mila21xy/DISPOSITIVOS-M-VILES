@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'result_screen.dart';
+import 'result_screen.dart';
 
 class GameScreen extends StatefulWidget {
   final String level;
@@ -120,7 +120,6 @@ class _GameScreenState extends State<GameScreen> {
               ),
 
               SizedBox(height: 20),
-              /*
               ElevatedButton(
                 onPressed: () {
                   Navigator.pushReplacement(
@@ -144,7 +143,6 @@ class _GameScreenState extends State<GameScreen> {
                     )
                 ),
               ),
-               */
             ],
           ),
         ),
