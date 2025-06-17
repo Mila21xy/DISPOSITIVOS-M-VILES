@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'user_profile_screen.dart';
 import 'level_selection_screen.dart';
-// import 'history_screen.dart';
+import 'history_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -64,7 +64,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 20),
-                /*
                 _buildMenuButton(
                   context,
                   'Historial',
@@ -74,7 +73,6 @@ class HomeScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => HistoryScreen()),
                   ),
                 ),
-                */
               ],
             ),
           ),
