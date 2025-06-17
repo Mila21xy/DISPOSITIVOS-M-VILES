@@ -1,6 +1,6 @@
 # aventura_matematica
 
-A new Flutter project.
+Una aplicación educativa para aprender matemáticas jugando.
 
 ## Getting Started
 
