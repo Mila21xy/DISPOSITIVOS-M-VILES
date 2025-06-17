@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'user_profile_screen.dart';
+import 'user_profile_screen.dart';
 // import 'level_selection_screen.dart';
 // import 'history_screen.dart';
 
@@ -56,7 +56,6 @@ class HomeScreen extends StatelessWidget {
                 ),
                 */
                 SizedBox(height: 20),
-                /*
                 _buildMenuButton(
                   context,
                   'Mi Perfil',
@@ -66,7 +65,6 @@ class HomeScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => UserProfileScreen()),
                   ),
                 ),
-                */
                 SizedBox(height: 20),
                 /*
                 _buildMenuButton(
