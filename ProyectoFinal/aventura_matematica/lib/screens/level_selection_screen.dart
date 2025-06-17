@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-//import 'game_screen.dart';
+import 'game_screen.dart';
 
 class LevelSelectionScreen extends StatelessWidget {
   const LevelSelectionScreen({super.key});
@@ -84,14 +84,12 @@ class LevelSelectionScreen extends StatelessWidget {
       elevation: 8,
       child: InkWell(
         onTap: () {
-          /*
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => GameScreen(level: level),
             ),
           );
-           */
         },
         child: Container(
           padding: EdgeInsets.all(20),
