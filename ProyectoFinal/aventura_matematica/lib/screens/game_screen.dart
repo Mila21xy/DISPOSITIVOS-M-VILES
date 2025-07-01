@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math';
+import '../models/game_model.dart';
+import '../services/game_service.dart';
+import '../services/auth_service.dart';
 import 'result_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -11,31 +16,207 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  int currentQuestion = 1;
+  final GameService _gameService = GameService();
+  final AuthService _authService = AuthService();
+
+  int currentQuestionIndex = 0;
   int totalQuestions = 10;
   int score = 0;
+  int correctAnswers = 0;
   int timeLeft = 30;
+  Timer? _timer;
+
+  List<Question> questions = [];
+  bool isLoading = true;
+  bool hasAnswered = false;
+  int? selectedAnswer;
+  DateTime questionStartTime = DateTime.now();
+  List<int> answerTimes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeGame();
+  }
+
+  void _initializeGame() {
+    // Generar preguntas según el nivel
+    questions = _gameService.generateQuestions(widget.level, totalQuestions);
+    timeLeft = _gameService.getTimeLimitForLevel(widget.level);
+
+    setState(() {
+      isLoading = false;
+    });
+
+    _startTimer();
+    questionStartTime = DateTime.now();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (timeLeft > 0) {
+        setState(() {
+          timeLeft--;
+        });
+      } else {
+        _timeUp();
+      }
+    });
+  }
+
+  void _timeUp() {
+    if (!hasAnswered) {
+      _answerQuestion(-1); // -1 indica tiempo agotado
+    }
+  }
+
+  void _answerQuestion(int selectedOption) {
+    if (hasAnswered) return;
+
+    _timer?.cancel();
+
+    // Calcular tiempo de respuesta
+    int responseTime = DateTime.now().difference(questionStartTime).inSeconds;
+    answerTimes.add(responseTime);
+
+    setState(() {
+      hasAnswered = true;
+      selectedAnswer = selectedOption;
+    });
+
+    // Verificar si la respuesta es correcta
+    bool isCorrect = selectedOption == questions[currentQuestionIndex].correctAnswer;
+
+    if (isCorrect) {
+      correctAnswers++;
+      // Calcular puntos basado en tiempo restante y dificultad
+      int points = _calculatePoints();
+      score += points;
+    }
+
+    // Mostrar feedback visual
+    Future.delayed(Duration(milliseconds: 1500), () {
+      _nextQuestion();
+    });
+  }
+
+  int _calculatePoints() {
+    int basePoints = 10;
+    int timeBonus = timeLeft;
+
+    switch (widget.level) {
+      case 'easy':
+        return basePoints + timeBonus;
+      case 'medium':
+        return (basePoints + timeBonus) * 2;
+      case 'hard':
+        return (basePoints + timeBonus) * 3;
+      case 'freestyle':
+        return (basePoints + timeBonus) * 2;
+      default:
+        return basePoints;
+    }
+  }
+
+  void _nextQuestion() {
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setState(() {
+        currentQuestionIndex++;
+        hasAnswered = false;
+        selectedAnswer = null;
+        timeLeft = _gameService.getTimeLimitForLevel(widget.level);
+      });
+      questionStartTime = DateTime.now();
+      _startTimer();
+    } else {
+      _endGame();
+    }
+  }
+
+  void _endGame() async {
+    _timer?.cancel();
+
+    // Calcular estadísticas
+    double averageTime = answerTimes.isEmpty ? 0 :
+    answerTimes.reduce((a, b) => a + b) / answerTimes.length;
+
+    // Crear modelo de juego
+    GameModel gameResult = GameModel(
+      id: '',
+      userId: _authService.currentUser?.uid ?? '',
+      level: widget.level,
+      score: score,
+      correctAnswers: correctAnswers,
+      totalQuestions: totalQuestions,
+      totalTime: answerTimes.reduce((a, b) => a + b),
+      playedAt: DateTime.now(),
+      averageTime: averageTime,
+    );
+
+    // Guardar resultado
+    if (_authService.currentUser != null) {
+      await _gameService.saveGameResult(gameResult);
+    }
+
+    // Navegar a pantalla de resultados
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultScreen(
+          score: score,
+          totalQuestions: totalQuestions,
+          correctAnswers: correctAnswers,
+          level: widget.level,
+          averageTime: averageTime,
+          gameResult: gameResult,
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+          ),
+        ),
+      );
+    }
+
+    Question currentQuestion = questions[currentQuestionIndex];
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Nivel ${widget.level.toUpperCase()}',
-            style: TextStyle(
-                color: Colors.white
-            )
-        ),
+            style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.deepPurple,
         actions: [
           Center(
             child: Padding(
               padding: EdgeInsets.only(right: 16),
-              child: Text(
-                '$timeLeft s',
-                style: TextStyle(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: timeLeft <= 5 ? Colors.red : Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(
+                  '${timeLeft}s',
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -59,7 +240,7 @@ class _GameScreenState extends State<GameScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Pregunta $currentQuestion/$totalQuestions',
+                    'Pregunta ${currentQuestionIndex + 1}/$totalQuestions',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -70,7 +251,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
               SizedBox(height: 10),
               LinearProgressIndicator(
-                value: currentQuestion / totalQuestions,
+                value: (currentQuestionIndex + 1) / totalQuestions,
                 backgroundColor: Colors.grey[300],
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
               ),
@@ -90,7 +271,7 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                       SizedBox(height: 20),
                       Text(
-                        '5 + 3 = ?',
+                        currentQuestion.operation,
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -110,38 +291,23 @@ class _GameScreenState extends State<GameScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 15,
                   mainAxisSpacing: 15,
-                  children: [
-                    _buildAnswerButton('6'),
-                    _buildAnswerButton('8'),
-                    _buildAnswerButton('7'),
-                    _buildAnswerButton('9'),
-                  ],
+                  children: currentQuestion.options.map((option) {
+                    return _buildAnswerButton(option);
+                  }).toList(),
                 ),
               ),
 
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ResultScreen(
-                        score: score,
-                        totalQuestions: totalQuestions,
-                        level: widget.level,
-                      ),
-                    ),
-                  );
+                  _showEndGameDialog();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 ),
                 child: Text('Terminar Juego',
-                    style: TextStyle(
-                        color: Colors.white
-                    )
-                ),
+                    style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -150,29 +316,64 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildAnswerButton(String answer) {
+  Widget _buildAnswerButton(int answer) {
+    Color backgroundColor = Colors.white;
+    Color textColor = Colors.deepPurple;
+
+    if (hasAnswered && selectedAnswer == answer) {
+      backgroundColor = answer == questions[currentQuestionIndex].correctAnswer
+          ? Colors.green
+          : Colors.red;
+      textColor = Colors.white;
+    } else if (hasAnswered && answer == questions[currentQuestionIndex].correctAnswer) {
+      backgroundColor = Colors.green;
+      textColor = Colors.white;
+    }
+
     return ElevatedButton(
-      onPressed: () {
-        // Funcionalidad de respuesta será implementada después
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Respuesta seleccionada: $answer')),
-        );
-      },
+      onPressed: hasAnswered ? null : () => _answerQuestion(answer),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.deepPurple,
+        backgroundColor: backgroundColor,
+        foregroundColor: textColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),
         elevation: 5,
       ),
       child: Text(
-        answer,
+        answer.toString(),
         style: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+
+  void _showEndGameDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('¿Terminar juego?'),
+          content: Text('¿Estás seguro de que quieres terminar el juego actual?'),
+          actions: [
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Terminar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _endGame();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
