@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "631739924936",
+    "project_id": "flutter-app-aventuramatematica",
+    "storage_bucket": "flutter-app-aventuramatematica.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:631739924936:android:b03ff4b57102183f09c0fd",
+        "android_client_info": {
+          "package_name": "com.example.aventura_matematica"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyJF_K8f_zBsYOqR8GI8MjchGptE4tDFo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
