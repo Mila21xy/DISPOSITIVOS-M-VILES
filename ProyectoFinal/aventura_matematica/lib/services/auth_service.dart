@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 
 class AuthService {
@@ -35,7 +36,9 @@ class AuthService {
 
       return result;
     } catch (e) {
-      print('Error en registro: $e');
+      if (kDebugMode) {
+        print('Error en registro: $e');
+      }
       return null;
     }
   }
@@ -59,7 +62,9 @@ class AuthService {
 
       return result;
     } catch (e) {
-      print('Error en inicio de sesión: $e');
+      if (kDebugMode) {
+        print('Error en inicio de sesión: $e');
+      }
       return null;
     }
   }
@@ -69,7 +74,9 @@ class AuthService {
     try {
       await _auth.signOut();
     } catch (e) {
-      print('Error al cerrar sesión: $e');
+      if (kDebugMode) {
+        print('Error al cerrar sesión: $e');
+      }
     }
   }
 
@@ -86,7 +93,9 @@ class AuthService {
 
       await _firestore.collection('users').doc(user.uid).set(userModel.toMap());
     } catch (e) {
-      print('Error al crear documento de usuario: $e');
+      if (kDebugMode) {
+        print('Error al crear documento de usuario: $e');
+      }
     }
   }
 
@@ -97,7 +106,9 @@ class AuthService {
         'lastLogin': DateTime.now().millisecondsSinceEpoch,
       });
     } catch (e) {
-      print('Error al actualizar última conexión: $e');
+      if (kDebugMode) {
+        print('Error al actualizar última conexión: $e');
+      }
     }
   }
 
@@ -110,7 +121,9 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error al obtener datos del usuario: $e');
+      if (kDebugMode) {
+        print('Error al obtener datos del usuario: $e');
+      }
       return null;
     }
   }
@@ -130,7 +143,9 @@ class AuthService {
 
       return true;
     } catch (e) {
-      print('Error al actualizar perfil: $e');
+      if (kDebugMode) {
+        print('Error al actualizar perfil: $e');
+      }
       return false;
     }
   }
@@ -141,7 +156,9 @@ class AuthService {
       await _auth.sendPasswordResetEmail(email: email);
       return true;
     } catch (e) {
-      print('Error al restablecer contraseña: $e');
+      if (kDebugMode) {
+        print('Error al restablecer contraseña: $e');
+      }
       return false;
     }
   }
