@@ -115,8 +115,20 @@ class GameService {
       User? user = _auth.currentUser;
       if (user == null) return false;
 
+      // Crear el mapa de datos asegurándose de incluir todos los campos
+      Map<String, dynamic> gameData = {
+        'userId': game.userId,
+        'level': game.level,
+        'score': game.score,
+        'correctAnswers': game.correctAnswers,
+        'totalQuestions': game.totalQuestions,
+        'totalTime': game.totalTime,
+        'playedAt': game.playedAt.millisecondsSinceEpoch,
+        'averageTime': game.averageTime,
+      };
+
       // Guardar el juego
-      await _firestore.collection('games').add(game.toMap());
+      await _firestore.collection('games').add(gameData);
 
       // Actualizar estadísticas del usuario
       await _updateUserStats(user.uid, game);
@@ -160,6 +172,10 @@ class GameService {
   // Obtener historial de juegos del usuario
   Future<List<GameModel>> getUserGameHistory(String userId) async {
     try {
+      if (kDebugMode) {
+        print('Obteniendo historial para usuario: $userId');
+      }
+
       QuerySnapshot querySnapshot = await _firestore
           .collection('games')
           .where('userId', isEqualTo: userId)
@@ -167,11 +183,22 @@ class GameService {
           .limit(20)
           .get();
 
-      return querySnapshot.docs.map((doc) {
+      if (kDebugMode) {
+        print('Documentos encontrados: ${querySnapshot.docs.length}');
+      }
+
+      List<GameModel> games = querySnapshot.docs.map((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
+
+        if (kDebugMode) {
+          print('Datos del juego: $data');
+        }
+
         return GameModel.fromMap(data);
       }).toList();
+
+      return games;
     } catch (e) {
       if (kDebugMode) {
         print('Error al obtener historial: $e');
