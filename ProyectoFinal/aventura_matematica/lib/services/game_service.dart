@@ -218,8 +218,10 @@ class GameService {
           'totalGamesPlayed': 0,
           'bestScore': 0,
           'favoriteLevel': 'Ninguno',
-          'averageScore': 0.0,
-          'averageAccuracy': 0.0,
+          'averageScore': 0,
+          'averageAccuracy': 0,
+          'totalCorrectAnswers': 0,
+          'totalQuestions': 0,
         };
       }
 
@@ -239,10 +241,16 @@ class GameService {
 
       double averageScore = 0.0;
       double averageAccuracy = 0.0;
+      int totalCorrectAnswers = 0;
+      int totalQuestions = 0;
 
       if (games.isNotEmpty) {
         averageScore = games.map((g) => g.score).reduce((a, b) => a + b) / games.length;
         averageAccuracy = games.map((g) => g.percentage).reduce((a, b) => a + b) / games.length;
+
+        // Calcular totales de respuestas correctas y preguntas
+        totalCorrectAnswers = games.map((g) => g.correctAnswers).reduce((a, b) => a + b);
+        totalQuestions = games.map((g) => g.totalQuestions).reduce((a, b) => a + b);
       }
 
       String favoriteLevel = userData['favoriteLevel'] ?? 'Ninguno';
@@ -269,6 +277,8 @@ class GameService {
         'favoriteLevel': favoriteLevel,
         'averageScore': averageScore.round(),
         'averageAccuracy': averageAccuracy.round(),
+        'totalCorrectAnswers': totalCorrectAnswers,
+        'totalQuestions': totalQuestions,
       };
     } catch (e) {
       if (kDebugMode) {
@@ -280,6 +290,8 @@ class GameService {
         'favoriteLevel': 'Ninguno',
         'averageScore': 0,
         'averageAccuracy': 0,
+        'totalCorrectAnswers': 0,
+        'totalQuestions': 0,
       };
     }
   }

@@ -41,7 +41,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           print('Historial obtenido: ${history.length} partidas');
           // Debug: imprimir los datos de cada partida
           for (var game in history) {
-            print('Game: $game');
+            print('Game ID: ${game.id}, Level: ${game.level}, Score: ${game.score}, Date: ${game.playedAt}');
           }
         }
 
@@ -58,9 +58,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     } catch (e) {
       if (kDebugMode) {
         print('Error en _loadGameHistory: $e');
+        print('Stack trace: ${StackTrace.current}');
       }
       setState(() {
-        _errorMessage = 'Error al cargar el historial: $e';
+        _errorMessage = 'Error al cargar el historial: ${e.toString()}';
         _isLoading = false;
       });
     }
@@ -75,6 +76,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.deepPurple,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
@@ -120,33 +122,45 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     if (_errorMessage.isNotEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red.shade400,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.red.shade600,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red.shade400,
               ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadGameHistory,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
+              const SizedBox(height: 16),
+              Text(
+                'Error al cargar el historial',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade600,
+                ),
               ),
-              child: const Text('Reintentar'),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red.shade600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadGameHistory,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -184,106 +198,132 @@ class _HistoryScreenState extends State<HistoryScreen> {
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text(
-          'Tus partidas anteriores',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.deepPurple,
+    return RefreshIndicator(
+      onRefresh: _loadGameHistory,
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(
+            'Tus partidas anteriores',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Total de partidas: ${_gameHistory.length}',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
+          const SizedBox(height: 8),
+          Text(
+            'Total de partidas: ${_gameHistory.length}',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        ..._gameHistory.map((game) => _buildHistoryCard(game)),
-      ],
+          const SizedBox(height: 20),
+          ..._gameHistory.map((game) => _buildHistoryCard(game)),
+        ],
+      ),
     );
   }
 
   Widget _buildHistoryCard(GameModel game) {
-    // Formatear la fecha - manejar tanto int como Timestamp
-    DateTime date;
-    if (game.playedAt is int) {
-      date = DateTime.fromMillisecondsSinceEpoch(game.playedAt as int);
-    } else {
-      // Si es un Timestamp de Firestore
-      date = (game.playedAt as dynamic).toDate();
-    }
-    String formattedDate = _formatDate(date);
+    try {
+      // game.playedAt ya es un DateTime según el modelo
+      String formattedDate = _formatDate(game.playedAt);
 
-    // Obtener color y nombre del nivel
-    Color levelColor = _getLevelColor(game.level);
-    String levelName = _getLevelName(game.level);
+      // Obtener color y nombre del nivel usando los métodos del modelo
+      Color levelColor = _getLevelColor(game.level);
+      String levelName = game.levelDisplayName;
 
-    // Usar las respuestas correctas directamente del modelo
-    int correctAnswers = game.correctAnswers;
-    int totalQuestions = game.totalQuestions; // Evitar división por cero
+      // Usar las propiedades del modelo directamente
+      int correctAnswers = game.correctAnswers;
+      int totalQuestions = game.totalQuestions;
 
-    // Calcular el porcentaje dinámicamente
-    double percentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+      // El modelo ya tiene la propiedad percentage calculada
+      double percentage = game.percentage;
 
-    return Card(
-      elevation: 5,
-      margin: const EdgeInsets.only(bottom: 15),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: levelColor.withOpacity(0.20),
-                borderRadius: BorderRadius.circular(25),
+      // Formatear el tiempo promedio
+      String averageTimeFormatted = game.averageTime.toStringAsFixed(1);
+
+      return Card(
+        elevation: 5,
+        margin: const EdgeInsets.only(bottom: 15),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: levelColor.withOpacity(0.20),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Icon(
+                  _getLevelIcon(game.level),
+                  color: levelColor,
+                  size: 30,
+                ),
               ),
-              child: Icon(
-                _getLevelIcon(game.level),
-                color: levelColor,
-                size: 30,
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Nivel $levelName',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: levelColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Preguntas correctas: $correctAnswers/$totalQuestions',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    Text(
+                      'Precisión: ${percentage.toInt()}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    Text(
+                      'Tiempo promedio: ${averageTimeFormatted}s',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    formattedDate,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  Text(
-                    'Nivel $levelName',
-                    style: TextStyle(
-                      fontSize: 16,
+                    '${game.score}',
+                    style: const TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: levelColor,
+                      color: Colors.deepPurple,
                     ),
                   ),
                   Text(
-                    'Preguntas correctas: $correctAnswers/$totalQuestions',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  Text(
-                    'Precisión: ${percentage.toInt()}%',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  Text(
-                    'Tiempo promedio: ${(game.averageTime).toStringAsFixed(1)}s',
+                    'puntos',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -291,49 +331,69 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ],
               ),
-            ),
-            Column(
-              children: [
-                Text(
-                  '${game.score}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
-                  ),
-                ),
-                Text(
-                  'puntos',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error al construir tarjeta de historial: $e');
+        print('Game data: ${game.toMap()}');
+      }
+      // Retornar una tarjeta de error en caso de problemas
+      return Card(
+        elevation: 2,
+        margin: const EdgeInsets.only(bottom: 15),
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Row(
+            children: [
+              Icon(
+                Icons.error,
+                color: Colors.red.shade400,
+                size: 30,
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Text(
+                  'Error al mostrar esta partida',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.red.shade600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   String _formatDate(DateTime date) {
-    List<String> months = [
-      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-    ];
+    try {
+      List<String> months = [
+        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+      ];
 
-    String day = date.day.toString().padLeft(2, '0');
-    String month = months[date.month - 1];
-    String year = date.year.toString();
-    String hour = date.hour.toString().padLeft(2, '0');
-    String minute = date.minute.toString().padLeft(2, '0');
+      String day = date.day.toString().padLeft(2, '0');
+      String month = months[date.month - 1];
+      String year = date.year.toString();
+      String hour = date.hour.toString().padLeft(2, '0');
+      String minute = date.minute.toString().padLeft(2, '0');
 
-    return '$day $month $year - $hour:$minute';
+      return '$day $month $year - $hour:$minute';
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error al formatear fecha: $e');
+      }
+      return 'Fecha no disponible';
+    }
   }
 
   Color _getLevelColor(String level) {
-    switch (level) {
+    switch (level.toLowerCase()) {
       case 'easy':
         return Colors.green;
       case 'medium':
@@ -347,23 +407,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  String _getLevelName(String level) {
-    switch (level) {
-      case 'easy':
-        return 'FÁCIL';
-      case 'medium':
-        return 'MEDIO';
-      case 'hard':
-        return 'DIFÍCIL';
-      case 'freestyle':
-        return 'LIBRE';
-      default:
-        return 'DESCONOCIDO';
-    }
-  }
-
   IconData _getLevelIcon(String level) {
-    switch (level) {
+    switch (level.toLowerCase()) {
       case 'easy':
         return Icons.sentiment_satisfied;
       case 'medium':
