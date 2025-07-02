@@ -306,7 +306,7 @@ class ResultScreen extends StatelessWidget {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          _showShareDialog(context, percentage, isFreestyleMode);
+                          _shareResult(percentage, isFreestyleMode);
                         },
                         icon: Icon(Icons.share, color: Colors.deepPurple),
                         label: Text('Compartir resultado',
@@ -471,30 +471,11 @@ class ResultScreen extends StatelessWidget {
     return '${minutes}m ${remainingSeconds}s';
   }
 
-  void _showShareDialog(BuildContext context, double percentage, bool isFreestyle) {
-    String shareMessage = isFreestyle
-        ? '¡Completé el desafío Freestyle con $totalQuestions preguntas respondidas!'
-        : '¡Obtuve ${percentage.toStringAsFixed(0)}% de precisión en el nivel ${gameResult.levelDisplayName}!';
+  void _shareResult(double percentage, bool isFreestyle) {
+    String message = isFreestyle
+        ? '¡Completé el desafío Freestyle con $totalQuestions preguntas respondidas en Aventura Matemática! 🎉\n\nDescúbrelo tú también.'
+        : '¡Obtuve ${percentage.toStringAsFixed(0)}% de precisión en el nivel ${gameResult.levelDisplayName} con un puntaje de $score en Aventura Matemática! 🧠✨\n\n¿Puedes superarme?';
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('¡Excelente resultado!'),
-          content: Text(
-            '$shareMessage\n\n'
-                'Función de compartir será implementada próximamente.',
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cerrar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+    Share.share(message);
   }
 }
