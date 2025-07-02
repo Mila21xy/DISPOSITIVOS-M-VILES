@@ -159,10 +159,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.school,
-                  size: 80,
-                  color: Colors.white,
+                Image.asset(
+                  'assets/icon/math_adventure.png',
+                  width: 150,
+                  height: 150,
                 ),
                 const SizedBox(height: 30),
                 _isLoading

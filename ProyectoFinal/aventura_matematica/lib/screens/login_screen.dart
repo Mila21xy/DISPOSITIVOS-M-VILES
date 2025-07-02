@@ -82,10 +82,10 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.calculate,
-                    size: 80,
-                    color: Colors.white,
+                  Image.asset(
+                    'assets/icon/math_adventure.png',
+                    width: 150,
+                    height: 150,
                   ),
                   const SizedBox(height: 20),
                   const Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/game_model.dart';
 import 'home_screen.dart';
 import 'level_selection_screen.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ResultScreen extends StatelessWidget {
   final int score;
