@@ -72,7 +72,7 @@ class LevelSelectionScreen extends StatelessWidget {
                       context,
                       'Libre',
                       'Todas las operaciones',
-                      'A tu propio ritmo',
+                      '60 segundos por pregunta',
                       Colors.blue,
                       Icons.sentiment_neutral_outlined,
                       'freestyle',

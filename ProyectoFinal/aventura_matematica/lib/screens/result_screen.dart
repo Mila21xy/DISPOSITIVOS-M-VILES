@@ -23,10 +23,11 @@ class ResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double percentage = (correctAnswers / totalQuestions) * 100;
+    double percentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
     String performanceLevel = _getPerformanceLevel(percentage);
     IconData performanceIcon = _getPerformanceIcon(percentage);
     Color performanceColor = _getPerformanceColor(percentage);
+    bool isFreestyleMode = level == 'freestyle';
 
     return Scaffold(
       appBar: AppBar(
@@ -64,7 +65,7 @@ class ResultScreen extends StatelessWidget {
 
               // Mensaje de felicitación
               Text(
-                performanceLevel,
+                isFreestyleMode ? '¡Desafío completado!' : performanceLevel,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -73,7 +74,18 @@ class ResultScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
 
-              if (percentage >= 90) ...[
+              // Mensaje especial para freestyle
+              if (isFreestyleMode) ...[
+                SizedBox(height: 10),
+                Text(
+                  'Respondiste $totalQuestions preguntas',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ] else if (percentage >= 90) ...[
                 SizedBox(height: 10),
                 Text(
                   '¡Rendimiento excepcional!',
@@ -107,53 +119,55 @@ class ResultScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 20),
 
-                      // Porcentaje circular
-                      SizedBox(
-                        width: 120,
-                        height: 120,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            SizedBox(
-                              width: 120,
-                              height: 120,
-                              child: CircularProgressIndicator(
-                                value: percentage / 100,
-                                strokeWidth: 8,
-                                backgroundColor: Colors.grey[300],
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  performanceColor,
+                      // Para freestyle, mostrar estadísticas diferentes
+                      if (isFreestyleMode) ...[
+                        _buildFreestyleStats(),
+                      ] else ...[
+                        // Porcentaje circular para modos normales
+                        SizedBox(
+                          width: 120,
+                          height: 120,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                width: 120,
+                                height: 120,
+                                child: CircularProgressIndicator(
+                                  value: percentage / 100,
+                                  strokeWidth: 8,
+                                  backgroundColor: Colors.grey[300],
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    performanceColor,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '${percentage.toStringAsFixed(0)}%',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: performanceColor,
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '${percentage.toStringAsFixed(0)}%',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: performanceColor,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  'Precisión',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
+                                  Text(
+                                    'Precisión',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-
-                      SizedBox(height: 25),
-
-                      // Estadísticas detalladas
-                      _buildDetailedStats(),
+                        SizedBox(height: 25),
+                        _buildDetailedStats(),
+                      ],
                     ],
                   ),
                 ),
@@ -285,13 +299,13 @@ class ResultScreen extends StatelessWidget {
 
                   SizedBox(height: 15),
 
-                  // Botón para compartir (opcional)
-                  if (percentage >= 80)
+                  // Botón para compartir (ajustado para freestyle)
+                  if ((isFreestyleMode && totalQuestions >= 10) || (!isFreestyleMode && percentage >= 80))
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          _showShareDialog(context, percentage);
+                          _showShareDialog(context, percentage, isFreestyleMode);
                         },
                         icon: Icon(Icons.share, color: Colors.deepPurple),
                         label: Text('Compartir resultado',
@@ -311,6 +325,53 @@ class ResultScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFreestyleStats() {
+    return Column(
+      children: [
+        // Estadísticas centrales para freestyle
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildFreestyleStat('Preguntas', totalQuestions.toString(), Icons.quiz),
+            _buildFreestyleStat('Correctas', correctAnswers.toString(), Icons.check_circle),
+          ],
+        ),
+        SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildFreestyleStat('Puntaje', score.toString(), Icons.stars),
+            _buildFreestyleStat('Precisión', '${((correctAnswers / totalQuestions) * 100).toStringAsFixed(0)}%', Icons.trending_up),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFreestyleStat(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, size: 30, color: Colors.deepPurple),
+        SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.deepPurple,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
     );
   }
 
@@ -409,14 +470,18 @@ class ResultScreen extends StatelessWidget {
     return '${minutes}m ${remainingSeconds}s';
   }
 
-  void _showShareDialog(BuildContext context, double percentage) {
+  void _showShareDialog(BuildContext context, double percentage, bool isFreestyle) {
+    String shareMessage = isFreestyle
+        ? '¡Completé el desafío Freestyle con $totalQuestions preguntas respondidas!'
+        : '¡Obtuve ${percentage.toStringAsFixed(0)}% de precisión en el nivel ${gameResult.levelDisplayName}!';
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('¡Excelente resultado!'),
           content: Text(
-            '¡Obtuviste ${percentage.toStringAsFixed(0)}% de precisión en el nivel ${gameResult.levelDisplayName}!\n\n'
+            '$shareMessage\n\n'
                 'Función de compartir será implementada próximamente.',
           ),
           actions: [

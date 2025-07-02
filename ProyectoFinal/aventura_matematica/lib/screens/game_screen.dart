@@ -32,15 +32,26 @@ class _GameScreenState extends State<GameScreen> {
   DateTime questionStartTime = DateTime.now();
   List<int> answerTimes = [];
 
+  // Variables específicas para freestyle ilimitado
+  bool isFreestyleMode = false;
+  int questionsAnswered = 0;
+
   @override
   void initState() {
     super.initState();
+    isFreestyleMode = widget.level == 'freestyle';
     _initializeGame();
   }
 
   void _initializeGame() {
-    // Generar preguntas según el nivel
-    questions = _gameService.generateQuestions(widget.level, totalQuestions);
+    // Para freestyle, generar preguntas iniciales y marcar como ilimitado
+    if (isFreestyleMode) {
+      totalQuestions = -1; // -1 indica ilimitado
+      questions = _gameService.generateQuestions(widget.level, 5); // Generar 5 iniciales
+    } else {
+      questions = _gameService.generateQuestions(widget.level, totalQuestions);
+    }
+
     timeLeft = _gameService.getTimeLimitForLevel(widget.level);
 
     setState(() {
@@ -94,6 +105,8 @@ class _GameScreenState extends State<GameScreen> {
       score += points;
     }
 
+    questionsAnswered++;
+
     // Mostrar feedback visual
     Future.delayed(Duration(milliseconds: 1500), () {
       _nextQuestion();
@@ -119,7 +132,14 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _nextQuestion() {
-    if (currentQuestionIndex < totalQuestions - 1) {
+    if (isFreestyleMode) {
+      // En modo freestyle, generar nueva pregunta si es necesario
+      if (currentQuestionIndex >= questions.length - 1) {
+        // Generar más preguntas
+        List<Question> newQuestions = _gameService.generateQuestions(widget.level, 5);
+        questions.addAll(newQuestions);
+      }
+
       setState(() {
         currentQuestionIndex++;
         hasAnswered = false;
@@ -129,7 +149,19 @@ class _GameScreenState extends State<GameScreen> {
       questionStartTime = DateTime.now();
       _startTimer();
     } else {
-      _endGame();
+      // Modo normal con límite de preguntas
+      if (currentQuestionIndex < totalQuestions - 1) {
+        setState(() {
+          currentQuestionIndex++;
+          hasAnswered = false;
+          selectedAnswer = null;
+          timeLeft = _gameService.getTimeLimitForLevel(widget.level);
+        });
+        questionStartTime = DateTime.now();
+        _startTimer();
+      } else {
+        _endGame();
+      }
     }
   }
 
@@ -140,6 +172,9 @@ class _GameScreenState extends State<GameScreen> {
     double averageTime = answerTimes.isEmpty ? 0 :
     answerTimes.reduce((a, b) => a + b) / answerTimes.length;
 
+    // Para freestyle, usar questionsAnswered como totalQuestions
+    int finalTotalQuestions = isFreestyleMode ? questionsAnswered : totalQuestions;
+
     // Crear modelo de juego
     GameModel gameResult = GameModel(
       id: '',
@@ -147,7 +182,7 @@ class _GameScreenState extends State<GameScreen> {
       level: widget.level,
       score: score,
       correctAnswers: correctAnswers,
-      totalQuestions: totalQuestions,
+      totalQuestions: finalTotalQuestions,
       totalTime: answerTimes.reduce((a, b) => a + b),
       playedAt: DateTime.now(),
       averageTime: averageTime,
@@ -164,7 +199,7 @@ class _GameScreenState extends State<GameScreen> {
       MaterialPageRoute(
         builder: (context) => ResultScreen(
           score: score,
-          totalQuestions: totalQuestions,
+          totalQuestions: finalTotalQuestions,
           correctAnswers: correctAnswers,
           level: widget.level,
           averageTime: averageTime,
@@ -239,7 +274,9 @@ class _GameScreenState extends State<GameScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Pregunta ${currentQuestionIndex + 1}/$totalQuestions',
+                    isFreestyleMode
+                        ? 'Pregunta ${questionsAnswered + 1}'
+                        : 'Pregunta ${currentQuestionIndex + 1}/$totalQuestions',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -249,11 +286,40 @@ class _GameScreenState extends State<GameScreen> {
                 ],
               ),
               SizedBox(height: 10),
-              LinearProgressIndicator(
-                value: (currentQuestionIndex + 1) / totalQuestions,
-                backgroundColor: Colors.grey[300],
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
-              ),
+
+              // Barra de progreso (solo para modos con límite)
+              if (!isFreestyleMode) ...[
+                LinearProgressIndicator(
+                  value: (currentQuestionIndex + 1) / totalQuestions,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+                ),
+              ] else ...[
+                // Para freestyle, mostrar una barra de "actividad"
+                Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: Row(
+                    children: List.generate(10, (index) =>
+                        Expanded(
+                          child: Container(
+                            margin: EdgeInsets.symmetric(horizontal: 1),
+                            decoration: BoxDecoration(
+                              color: (index % 3 == (questionsAnswered % 3))
+                                  ? Colors.white
+                                  : Colors.deepPurple.shade300,
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                        ),
+                    ),
+                  ),
+                ),
+              ],
+
               SizedBox(height: 40),
 
               // Pregunta
@@ -355,7 +421,11 @@ class _GameScreenState extends State<GameScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('¿Terminar juego?'),
-          content: Text('¿Estás seguro de que quieres terminar el juego actual?'),
+          content: Text(
+              isFreestyleMode
+                  ? '¿Estás seguro de que quieres terminar el juego? Has respondido $questionsAnswered preguntas.'
+                  : '¿Estás seguro de que quieres terminar el juego actual?'
+          ),
           actions: [
             TextButton(
               child: Text('Cancelar'),
