@@ -108,7 +108,7 @@ class ResultScreen extends StatelessWidget {
                       SizedBox(height: 20),
 
                       // Porcentaje circular
-                      Container(
+                      SizedBox(
                         width: 120,
                         height: 120,
                         child: Stack(
@@ -186,7 +186,7 @@ class ResultScreen extends StatelessWidget {
                           Expanded(
                             child: _buildStatItem(
                               'Tiempo total',
-                              '${_formatTime(gameResult.totalTime)}',
+                              _formatTime(gameResult.totalTime),
                               Icons.timer,
                               Colors.blue,
                             ),
