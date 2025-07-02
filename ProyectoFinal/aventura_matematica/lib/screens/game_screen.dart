@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:math';
 import '../models/game_model.dart';
 import '../services/game_service.dart';
 import '../services/auth_service.dart';
